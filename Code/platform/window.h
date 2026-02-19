@@ -31,6 +31,10 @@ namespace VKFW::platform {
         int width()  const { return mWidth; }
         int height() const { return mHeight; }
 
+        [[nodiscard]] auto getWidth() const { return mWidth; }
+        [[nodiscard]] auto getHeight() const { return mHeight; }
+        [[nodiscard]] auto getWindow() const { return mWindow; }
+
     private:
         static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
         static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);

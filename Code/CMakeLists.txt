@@ -18,7 +18,8 @@ link_directories(
 )
 
 add_subdirectory(platform)
+add_subdirectory(vulkancore)
 
 add_executable(VulkanFramework ${SRC_LIST})
 
-target_link_libraries(VulkanFramework glfw3.lib vulkan-1.lib platformLib)
+target_link_libraries(VulkanFramework glfw3.lib vulkan-1.lib platformLib vulkanLib)
