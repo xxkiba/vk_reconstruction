@@ -15,7 +15,7 @@ namespace VKFW {
         mWindow->setOnMouseMove([this](double x, double y) { this->onMouseMove(x, y); });
         mWindow->setOnKeyMove([this](platform::CameraMove mv) { this->onKeyMove(mv); });
     }
-
+    
     void Application::initVulkan() {
         mInstance = MakeRef<vulkancore::Instance>(true);
         mSurface = MakeRef<vulkancore::WindowSurface>(mInstance,mWindow);
