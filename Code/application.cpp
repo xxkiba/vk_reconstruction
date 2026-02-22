@@ -5,7 +5,7 @@ namespace VKFW {
         initWindow();
         initVulkan();
         mainLoop();
-        // cleanup();
+        cleanUp();
     }
 
     void Application::initWindow() {
@@ -21,6 +21,13 @@ namespace VKFW {
         mSurface = MakeRef<vulkancore::WindowSurface>(mInstance,mWindow);
         mDevice = MakeRef<vulkancore::Device>(mInstance, mSurface);
         mCommandPool = MakeRef<vulkancore::CommandPool>(mDevice);
+        mSwapChain = MakeRef<vulkancore::SwapChain>(mDevice, mWindow, mSurface, mCommandPool);
+        mRenderPass = factories::RenderPassFactory::CreateSwapchainMsaaPresentPass(
+            mDevice,
+            mSwapChain->getSwapChainImageFormat(),
+            mDevice->getMaxUsableSampleCount(),
+            vulkancore::Image::findDepthFormat(mDevice));
+        mSwapChain->createFrameBuffers(mRenderPass);
     }
 
     void Application::mainLoop() {
@@ -34,6 +41,10 @@ namespace VKFW {
     }
 
     void Application::cleanUp() {
+        vkDeviceWaitIdle(mDevice->getDevice());
+        mRenderPass.reset();
+        mSwapChain.reset();
+        mCommandPool.reset();
         mDevice.reset();
         mSurface.reset();
         mInstance.reset();

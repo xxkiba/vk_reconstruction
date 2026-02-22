@@ -24,7 +24,7 @@ namespace VKFW::vulkancore {
 		//If memory is Local optimal, should create StageBuffer, first copy to stage buffer, then copy to this buffer'
 		void updateBufferByStage(void* data, VkDeviceSize size);
 		void copyBuffer(const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, VkDeviceSize size);
-		uint32_t findMemoryType(VKFW::Ref<Device> device, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+		uint32_t findMemoryType(VKFW::Ref<Device> &device, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 		[[nodiscard]] VkMemoryPropertyFlags getProperties() const { return mProperties; }
 

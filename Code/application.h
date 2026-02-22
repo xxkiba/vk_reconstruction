@@ -4,6 +4,11 @@
 #include "vulkancore/windowSurface.h"
 #include "vulkancore/device.h"
 #include "vulkancore/commandPool.h"
+#include "vulkancore/renderPass.h"
+#include "vulkancore/image.h"
+#include "vulkancore/swapChain.h"
+
+#include "factories/renderPassFactory.h"
 #include "ptr.h"
 namespace VKFW {
 
@@ -23,11 +28,13 @@ namespace VKFW {
         void onKeyMove(platform::CameraMove move);
 
     private:
-        Ref<platform::Window> mWindow;
-        Ref<vulkancore::Instance> mInstance;
-        Ref<vulkancore::WindowSurface> mSurface;
-        Ref<vulkancore::Device> mDevice;
-        Ref<vulkancore::CommandPool> mCommandPool;
+        Ref<platform::Window> mWindow{ nullptr };
+        Ref<vulkancore::Instance> mInstance{ nullptr };
+        Ref<vulkancore::WindowSurface> mSurface{ nullptr };
+        Ref<vulkancore::Device> mDevice{ nullptr };
+        Ref<vulkancore::CommandPool> mCommandPool{ nullptr };
+        Ref<vulkancore::RenderPass> mRenderPass{ nullptr };
+        Ref<vulkancore::SwapChain> mSwapChain{ nullptr };
 
         int mWidth{ 1280 }, mHeight{ 720 };
 

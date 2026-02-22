@@ -87,6 +87,10 @@ namespace VKFW::vulkancore {
             desc.format = depthFormat;
             desc.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
             desc.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+            if (depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+                depthFormat == VK_FORMAT_D24_UNORM_S8_UINT) {
+                desc.aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
             desc.samples = device->getMaxUsableSampleCount();
             return VKFW::MakeRef<Image>(device, desc);
         }
@@ -98,8 +102,9 @@ namespace VKFW::vulkancore {
             desc.width = width;
             desc.height = height;
             desc.format = inFormat;
-            desc.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-            desc.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+            desc.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            desc.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+            desc.samples = device->getMaxUsableSampleCount();
             return VKFW::MakeRef<Image>(device, desc);
         }
 
@@ -122,7 +127,7 @@ namespace VKFW::vulkancore {
         
         // Getters
         VkImage getHandle() const { return mImage; }
-        VkImageView getView() const { return mImageView; }
+        VkImageView getImageView() const { return mImageView; }
         VkFormat getFormat() const { return mDesc.format; }
         const ImageDescription& getDesc() const { return mDesc; }
 

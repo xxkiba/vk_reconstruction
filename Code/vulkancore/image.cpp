@@ -87,8 +87,10 @@ namespace VKFW::vulkancore {
     
 
     void Image::transitionLayout( VkImageLayout newLayout,
-        VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage,
-        const VKFW::Ref<CommandPool>& pool,const VKFW::Ref<CommandBuffer>& externalCmd) {
+        VkPipelineStageFlags srcStage,
+        VkPipelineStageFlags dstStage,
+        const VKFW::Ref<CommandPool>& pool,
+        const VKFW::Ref<CommandBuffer>& externalCmd) {
 
         auto executeTransition = [&](const VKFW::Ref<CommandBuffer>& cmd) {
             VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -98,8 +100,8 @@ namespace VKFW::vulkancore {
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.image = mImage;
             barrier.subresourceRange = { mDesc.aspectFlags, 0, mDesc.mipLevels, 0, mDesc.isCubeMap ? 6u : 1u };
-            barrier.srcAccessMask = getAccessMask(mCurrentLayout);
-            barrier.dstAccessMask = getAccessMask(newLayout);
+            barrier.srcAccessMask = getSrcAccessMask(mCurrentLayout);
+            barrier.dstAccessMask = getDstAccessMask(newLayout);
 
             vkCmdPipelineBarrier(cmd->getCommandBuffer(), srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
             };

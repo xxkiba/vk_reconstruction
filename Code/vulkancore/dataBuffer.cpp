@@ -35,13 +35,16 @@ namespace VKFW::vulkancore {
 
 	DataBuffer::~DataBuffer() {
 
-		if (mBuffer != VK_NULL_HANDLE) {
-			vkDestroyBuffer(mDevice->getDevice(), mBuffer, nullptr);
-		}
 
 		if (mMemory != VK_NULL_HANDLE) {
 			vkFreeMemory(mDevice->getDevice(), mMemory, nullptr);
 		}
+
+		if (mBuffer != VK_NULL_HANDLE) {
+			vkDestroyBuffer(mDevice->getDevice(), mBuffer, nullptr);
+		}
+
+
 
 	}
 
@@ -106,7 +109,7 @@ namespace VKFW::vulkancore {
 
 		copyBuffer(stagingBuffer->getBuffer(), mBuffer, size);
 	}
-	uint32_t DataBuffer::findMemoryType(VKFW::Ref<Device> device, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+	uint32_t DataBuffer::findMemoryType(VKFW::Ref<Device>& device, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 		VkPhysicalDeviceMemoryProperties memProperties;
 		vkGetPhysicalDeviceMemoryProperties(device->getPhysicalDevice(), &memProperties);
 		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
