@@ -22,12 +22,22 @@ namespace VKFW {
         mDevice = MakeRef<vulkancore::Device>(mInstance, mSurface);
         mCommandPool = MakeRef<vulkancore::CommandPool>(mDevice);
         mSwapChain = MakeRef<vulkancore::SwapChain>(mDevice, mWindow, mSurface, mCommandPool);
-        mRenderPass = factories::RenderPassFactory::CreateSwapchainMsaaPresentPass(
+        mRenderPass = factories::RenderPassFactory::CreateMsaaRenderPass(
             mDevice,
             mSwapChain->getSwapChainImageFormat(),
             mDevice->getMaxUsableSampleCount(),
-            vulkancore::Image::findDepthFormat(mDevice));
+            vulkancore::Image::findDepthFormat(mDevice)
+        );
+
         mSwapChain->createFrameBuffers(mRenderPass);
+
+        mOffscreenRenderTarget = VKFW::MakeRef<VKFW::renderer::OffscreenRenderTarget>(
+            mDevice, mCommandPool,
+            mWidth, mHeight,
+            mSwapChain->getImageCount(),
+            VK_FORMAT_R32G32B32A32_SFLOAT, // Color format
+            VK_FORMAT_D24_UNORM_S8_UINT // Depth format
+        );
     }
 
     void Application::mainLoop() {

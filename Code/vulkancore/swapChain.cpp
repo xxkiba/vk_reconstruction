@@ -100,7 +100,7 @@ namespace VKFW::vulkancore {
 
 
 		for (size_t i = 0; i < mImageCount; i++) {
-			mMultisampleImages[i] = Image::createRenderTargetImage(
+			mMultisampleImages[i] = Image::createMultiSampleImage(
 				mDevice,
 				mSwapChainExtent.width,
 				mSwapChainExtent.height,

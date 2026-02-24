@@ -20,7 +20,8 @@ link_directories(
 add_subdirectory(platform)
 add_subdirectory(vulkancore)
 add_subdirectory(factories)
+add_subdirectory(renderer)
 
 add_executable(VulkanFramework ${SRC_LIST})
 
-target_link_libraries(VulkanFramework glfw3.lib vulkan-1.lib platformLib vulkanLib factoriesLib)
+target_link_libraries(VulkanFramework glfw3.lib vulkan-1.lib platformLib vulkanLib factoriesLib renderLib)

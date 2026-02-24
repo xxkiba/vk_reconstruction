@@ -3,24 +3,32 @@
 
 namespace VKFW::factories {
 
-    VKFW::Ref<VKFW::vulkancore::RenderPass> RenderPassFactory::CreateSwapchainMsaaPresentPass(
+    VKFW::Ref<VKFW::vulkancore::RenderPass> RenderPassFactory::CreateMsaaRenderPass(
         const VKFW::Ref<VKFW::vulkancore::Device>& device,
-        VkFormat swapchainFormat,
+        VkFormat mColorFormat,
         VkSampleCountFlagBits msaaSamples,
-        VkFormat depthFormat)
+        VkFormat depthFormat,
+        VkImageLayout imageFinalLayout)
     {
         auto rp = VKFW::MakeRef<VKFW::vulkancore::RenderPass>(device);
+        // Create a render pass
+        // 
+        // 0: Final output color attachment -> PRESENT
+        // 1: Resolve image(MultiSample) (render here)
+        // 2: Depth attachment
 
+        // 0: Final output color attachment, created by the swap chain, target of resolve operation, is also the target to be set in subpass
+        // 
         // 0: swapchain final (present)
         VkAttachmentDescription finalAttachment{};
-        finalAttachment.format = swapchainFormat;
+        finalAttachment.format = mColorFormat;
         finalAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         finalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         finalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         finalAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         finalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         finalAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        finalAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        finalAttachment.finalLayout = imageFinalLayout;
         rp->addAttachment(finalAttachment);
 
         VkAttachmentReference finalRef{};
@@ -29,7 +37,7 @@ namespace VKFW::factories {
 
         // 1: MSAA color
         VkAttachmentDescription msaaAttachment{};
-        msaaAttachment.format = swapchainFormat;
+        msaaAttachment.format = mColorFormat;
         msaaAttachment.samples = msaaSamples;
         msaaAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         msaaAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

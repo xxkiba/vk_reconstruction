@@ -95,7 +95,18 @@ namespace VKFW::vulkancore {
             return VKFW::MakeRef<Image>(device, desc);
         }
 
-        static VKFW::Ref<Image> Image::createRenderTargetImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height,VkFormat inFormat) {
+
+        static VKFW::Ref<Image> Image::createRenderTargetImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height, VkFormat inFormat) {
+            
+            ImageDescription desc{};
+            desc.width = width;
+            desc.height = height;
+            desc.format = inFormat;
+            desc.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            desc.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+            return VKFW::MakeRef<Image>(device, desc);
+        }
+        static VKFW::Ref<Image> Image::createMultiSampleImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height,VkFormat inFormat) {
 
 
             ImageDescription desc{};

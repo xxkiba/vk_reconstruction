@@ -9,6 +9,8 @@
 #include "vulkancore/swapChain.h"
 
 #include "factories/renderPassFactory.h"
+
+#include "renderer/offscreenRenderTarget.h"
 #include "ptr.h"
 namespace VKFW {
 
@@ -35,6 +37,8 @@ namespace VKFW {
         Ref<vulkancore::CommandPool> mCommandPool{ nullptr };
         Ref<vulkancore::RenderPass> mRenderPass{ nullptr };
         Ref<vulkancore::SwapChain> mSwapChain{ nullptr };
+
+        Ref<renderer::OffscreenRenderTarget> mOffscreenRenderTarget{ nullptr };
 
         int mWidth{ 1280 }, mHeight{ 720 };
 

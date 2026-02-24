@@ -82,9 +82,16 @@ namespace VKFW::vulkancore {
         commandBuffer->endCommandBuffer();
 
         commandBuffer->submitCommandBuffer(mDevice->getGraphicQueue());
-        //commandBuffer->waitCommandBuffer(mDevice->getGraphicQueue());
+        // commandBuffer->waitCommandBuffer(mDevice->getGraphicQueue());
     }
     
+
+    //That is, Vulkan’s synchronization / layout transitions can be applied with fine granularity :
+    //Transition only a specific mip level
+    //    Transition only a specific cubemap face
+    //    Transition only certain array layers
+    //    Transition depth without transitioning stencil
+    //    Transition only a specific plane
 
     void Image::transitionLayout( VkImageLayout newLayout,
         VkPipelineStageFlags srcStage,
