@@ -1,4 +1,5 @@
 #pragma once
+#include "../ptr.h"
 #include <vulkan/vulkan.h>
 #include <iostream>
 #include <memory>
@@ -10,17 +11,6 @@
 #include <fstream>
 #include <optional>
 #include <unordered_map>
-
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-
-#define GLFW_INCLUDE_VULKAN
-
-
-#include <glfw/glfw3.h>
 
 inline constexpr std::array<const char*, 1> validationLayers = {
     "VK_LAYER_KHRONOS_validation"

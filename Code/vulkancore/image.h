@@ -77,9 +77,80 @@ namespace VKFW::vulkancore {
             return img;
         }
 
-        static VKFW::Ref<Image> Image::createDepthStencil(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height) {
+        static VKFW::Ref<Image> createImageFromHDRFile(
+            const VKFW::Ref<Device>& device,
+            const VKFW::Ref<CommandPool> commandPool,
+            const std::string& filePath,
+            bool flipVertically = false,
+            VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT)
+        {
+            // 1) only support float32 RGBA
+            if (format != VK_FORMAT_R32G32B32A32_SFLOAT) {
+                throw std::runtime_error("createImageFromHDRFile: only VK_FORMAT_R32G32B32A32_SFLOAT is supported in this version.");
+            }
 
-            VkFormat depthFormat = findDepthFormat(device);
+            int texWidth = 0, texHeight = 0, texChannels = 0;
+            stbi_set_flip_vertically_on_load(flipVertically ? 1 : 0);
+
+            // 2) load float image (keep original channels)
+            float* pixels = stbi_loadf(filePath.c_str(), &texWidth, &texHeight, &texChannels, 0);
+            if (!pixels || texWidth <= 0 || texHeight <= 0) {
+                throw std::runtime_error("Image::createImageFromHDRFile failed to load image or invalid dimensions! Path: " + filePath);
+            }
+
+            // 3) pack to RGBA float (same as your Texture code: A = 1.0)
+            const int pixelCount = texWidth * texHeight;
+            std::vector<float> floatRGBA(pixelCount * 4);
+
+            for (int i = 0; i < pixelCount; ++i) {
+                floatRGBA[i * 4 + 0] = (texChannels > 0) ? pixels[i * texChannels + 0] : 0.0f; // R
+                floatRGBA[i * 4 + 1] = (texChannels > 1) ? pixels[i * texChannels + 1] : 0.0f; // G
+                floatRGBA[i * 4 + 2] = (texChannels > 2) ? pixels[i * texChannels + 2] : 0.0f; // B
+                floatRGBA[i * 4 + 3] = (texChannels > 3) ? pixels[i * texChannels + 3] : 1.0f; // A
+            }
+
+            // 4) create image
+            ImageDescription desc{};
+            desc.width = static_cast<uint32_t>(texWidth);
+            desc.height = static_cast<uint32_t>(texHeight);
+            desc.format = format;
+            desc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            desc.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+
+            auto img = VKFW::MakeRef<Image>(device, desc);
+
+            // 5) layout transitions + upload (same flow as LDR)
+            img->transitionLayout(
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                commandPool
+            );
+
+            const VkDeviceSize byteSize = static_cast<VkDeviceSize>(floatRGBA.size() * sizeof(float));
+            img->fillImageData(static_cast<size_t>(byteSize), floatRGBA.data(), commandPool, false);
+
+            img->transitionLayout(
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                commandPool
+            );
+
+            stbi_image_free(pixels);
+            return img;
+        }
+
+        static VKFW::Ref<Image> createDepthStencil(
+            const VKFW::Ref<Device>& device,
+            uint32_t width,
+            uint32_t height,
+            VkFormat depthFormat = VK_FORMAT_UNDEFINED)
+        {
+            // if not designated, choose one
+            if (depthFormat == VK_FORMAT_UNDEFINED) {
+                depthFormat = findDepthFormat(device);
+            }
 
             ImageDescription desc{};
             desc.width = width;
@@ -87,10 +158,12 @@ namespace VKFW::vulkancore {
             desc.format = depthFormat;
             desc.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
             desc.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
             if (depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
                 depthFormat == VK_FORMAT_D24_UNORM_S8_UINT) {
                 desc.aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
             }
+
             desc.samples = device->getMaxUsableSampleCount();
             return VKFW::MakeRef<Image>(device, desc);
         }
@@ -119,6 +192,17 @@ namespace VKFW::vulkancore {
             return VKFW::MakeRef<Image>(device, desc);
         }
 
+        static VKFW::Ref<Image> Image::createCubeMapImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height, VkFormat inFormat) {
+
+            ImageDescription desc{};
+            desc.width = width;
+            desc.height = height;
+            desc.format = inFormat;
+            desc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            desc.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+            desc.isCubeMap = true;
+            return VKFW::MakeRef<Image>(device, desc);
+        }
 
         Image(const VKFW::Ref<Device>& device, const ImageDescription& desc);
         ~Image();
@@ -140,6 +224,7 @@ namespace VKFW::vulkancore {
         VkImage getHandle() const { return mImage; }
         VkImageView getImageView() const { return mImageView; }
         VkFormat getFormat() const { return mDesc.format; }
+        [[nodiscard]] auto getLayout() const { return mCurrentLayout; }
         const ImageDescription& getDesc() const { return mDesc; }
 
         static VkFormat findDepthFormat(const VKFW::Ref<Device>& device, VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,

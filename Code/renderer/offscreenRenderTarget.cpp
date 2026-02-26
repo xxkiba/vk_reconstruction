@@ -63,7 +63,7 @@ namespace VKFW::renderer {
                 mCommandPool); // Set the image layout for the multisample image
 
 
-            mDepthImages[i] = VKFW::vulkancore::Image::createDepthStencil(mDevice, mWidth, mHeight);
+            mDepthImages[i] = VKFW::vulkancore::Image::createDepthStencil(mDevice, mWidth, mHeight,mDepthFormat);
 
             mDepthImages[i]->transitionLayout(
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,

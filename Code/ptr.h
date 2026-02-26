@@ -1,7 +1,16 @@
 #pragma once
 #include <memory>
 #include <utility>
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+
+#define GLFW_INCLUDE_VULKAN
+
+
+#include <glfw/glfw3.h>
 namespace VKFW {
 
     template<class T>
