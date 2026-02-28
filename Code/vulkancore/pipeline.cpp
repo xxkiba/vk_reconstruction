@@ -19,7 +19,7 @@ namespace VKFW::vulkancore {
 		mDevice.reset();
 		mRenderPass.reset();
 	}
-	void Pipeline::setShaderGroup(const std::vector<Shader::Ptr>& shaderGroup) {
+	void Pipeline::setShaderGroup(const std::vector<VKFW::Ref<Shader>>& shaderGroup) {
 		mShaders = shaderGroup;
 	}
 	void Pipeline::build() {

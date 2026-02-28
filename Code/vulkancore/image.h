@@ -29,6 +29,39 @@ namespace VKFW::vulkancore {
     public:
         using Ptr = VKFW::Ref<Image>;
 
+        static VKFW::Ref<Image> create(
+            const VKFW::Ref<Device>& device,
+            uint32_t width,
+            uint32_t height,
+            VkFormat format,
+            VkImageType imageType = VK_IMAGE_TYPE_2D,
+            VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL,
+            VkImageUsageFlags usage = 0,
+            VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
+            VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT,
+            bool isCubeMap = false,
+            uint32_t mipLevels = 1,
+            uint32_t arrayLayers = 1,
+            uint32_t depth = 1)
+        {
+            ImageDescription desc{};
+            desc.width = width;
+            desc.height = height;
+            desc.depth = depth;
+            desc.mipLevels = mipLevels;
+            desc.arrayLayers = arrayLayers;
+            desc.format = format;
+            desc.imageType = imageType;
+            desc.tiling = tiling;
+            desc.usage = usage;
+            desc.properties = properties;
+            desc.samples = samples;
+            desc.aspectFlags = aspectFlags;
+            desc.isCubeMap = isCubeMap;
+            return VKFW::MakeRef<Image>(device, desc);
+        }
+
         static VKFW::Ref<Image> Image::createImageFromFile(const VKFW::Ref<Device>& device,
             const VKFW::Ref<CommandPool> commandPool,
             const std::string& filePath,
@@ -222,7 +255,8 @@ namespace VKFW::vulkancore {
         
         // Getters
         VkImage getHandle() const { return mImage; }
-        VkImageView getImageView() const { return mImageView; }
+        [[nodiscard]] VkImageView getImageView() const { return mImageView; }
+        [[nodiscard]] VkImage getImage() const { return mImage; }
         VkFormat getFormat() const { return mDesc.format; }
         [[nodiscard]] auto getLayout() const { return mCurrentLayout; }
         const ImageDescription& getDesc() const { return mDesc; }

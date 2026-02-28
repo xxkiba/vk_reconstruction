@@ -7,10 +7,6 @@
 namespace VKFW::vulkancore {
 	class Shader {
 	public:
-		using Ptr = std::shared_ptr<Shader>;
-		static Ptr create(const VKFW::Ref<Device>& device, const std::string& fileName, VkShaderStageFlagBits shaderStage, const std::string& entryPoint) {
-			return std::make_shared<Shader>(device, fileName, shaderStage, entryPoint);
-		}
 		Shader(const VKFW::Ref<Device>& device, const std::string& fileName, VkShaderStageFlagBits shaderStage, const std::string& entryPoint);
 		~Shader();
 

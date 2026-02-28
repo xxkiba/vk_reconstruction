@@ -18,6 +18,7 @@ namespace VKFW::vulkancore {
     }
 
     void Image::createResources() {
+        mExtent = { mDesc.width, mDesc.height, mDesc.depth };
         VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         imageInfo.imageType = mDesc.imageType;
         imageInfo.extent = { mDesc.width, mDesc.height, mDesc.depth };

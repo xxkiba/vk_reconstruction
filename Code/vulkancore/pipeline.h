@@ -19,7 +19,7 @@ namespace VKFW::vulkancore {
 		[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return mLayout; }
 		//[[nodiscard]] const VKFW::Ref<RenderPass>& getRenderPass() const { return mRenderPass; }
 		//[[nodiscard]] const std::vector<Shader::Ptr>& getShaders() const { return mShaders; }
-		void setShaderGroup(const std::vector<Shader::Ptr>& shaderGroup);
+		void setShaderGroup(const std::vector<VKFW::Ref<Shader>>& shaderGroup);
 		void inline setViewports(const std::vector<VkViewport>& viewports) { mViewports = viewports; }
 		void inline setScissors(const std::vector<VkRect2D>& scissors) { mScissors = scissors; }
 
@@ -49,6 +49,6 @@ namespace VKFW::vulkancore {
 		VkPipelineLayout mLayout{ VK_NULL_HANDLE };
 		VKFW::Ref<Device> mDevice{ nullptr };
 		VKFW::Ref<RenderPass> mRenderPass{ nullptr };
-		std::vector<Shader::Ptr> mShaders{};
+		std::vector<VKFW::Ref<Shader>> mShaders{};
 	};
 }

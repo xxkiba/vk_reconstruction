@@ -38,9 +38,9 @@ namespace VKFW::vulkancore {
 	void CommandBuffer::beginRenderPass(const VkRenderPassBeginInfo& renderPassBeginInfo, VkSubpassContents subPassContents) {
 		vkCmdBeginRenderPass(mCommandBuffer, &renderPassBeginInfo, subPassContents);
 	}
-	//void CommandBuffer::bindGraphicPipeline(const Pipeline::Ptr& pipeline) {
-	//	vkCmdBindPipeline(mCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
-	//}
+	void CommandBuffer::bindGraphicPipeline(const VKFW::Ref<Pipeline>& pipeline) {
+		vkCmdBindPipeline(mCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
+	}
 
 	void CommandBuffer::bindVertexBuffer(const std::vector<VkBuffer>& buffers, uint32_t binding, std::vector<VkDeviceSize> offsets) {
 		offsets.resize(buffers.size(), 0);

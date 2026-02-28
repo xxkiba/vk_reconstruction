@@ -11,65 +11,53 @@ namespace VKFW::renderer {
 		mDevice = device;
 		mcommandpool = commandPool;
 		mFrameCount = frameCount;
+	}
+
+	void UniformManager::attachGlobalUniform() {
 		auto nvpParam = VKFW::MakeRef<VKFW::vulkancore::UniformParameter>();
-		nvpParam->mBinding = 0;
+		nvpParam->mBinding = static_cast<uint32_t>(mUniformParameters.size()); // auto-increment binding
 		nvpParam->mDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		nvpParam->mCount = 1;
 		nvpParam->mStageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		nvpParam->mSize = sizeof(NVPMatrices);
 
-		for (int i = 0; i < frameCount; i++) {
-			auto buffer = VKFW::vulkancore::DataBuffer::createUniformBuffer(device, nvpParam->mSize, nullptr);
+		for (int i = 0; i < mFrameCount; i++) {
+			auto buffer = VKFW::vulkancore::DataBuffer::createUniformBuffer(mDevice, nvpParam->mSize, nullptr);
 			nvpParam->mBuffers.push_back(buffer);
 		}
 
 		mUniformParameters.push_back(nvpParam);
+	}
 
+	void UniformManager::attachObjectUniform() {
 		auto objectParam = VKFW::MakeRef<VKFW::vulkancore::UniformParameter>();
-		objectParam->mBinding = 1;
+		objectParam->mBinding = static_cast<uint32_t>(mUniformParameters.size()); // auto-increment binding
 		objectParam->mDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		objectParam->mCount = 1;
 		objectParam->mStageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		objectParam->mSize = sizeof(ObjectUniform);
-		for (int i = 0; i < frameCount; i++) {
-			auto buffer = VKFW::vulkancore::DataBuffer::createUniformBuffer(device, objectParam->mSize, nullptr);
+
+		for (int i = 0; i < mFrameCount; i++) {
+			auto buffer = VKFW::vulkancore::DataBuffer::createUniformBuffer(mDevice, objectParam->mSize, nullptr);
 			objectParam->mBuffers.push_back(buffer);
 		}
+
 		mUniformParameters.push_back(objectParam);
+	}
 
-		auto textureParam = VKFW::MakeRef<VKFW::vulkancore::UniformParameter>();
-		textureParam->mBinding = 2;
-		textureParam->mDescriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		textureParam->mCount = 1;
-		textureParam->mStageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		//textureParam->mSize = sizeof(VkDescriptorImageInfo);
-		std::array<std::string, 6> cubemapPaths = {
-			"assets/px.jpg","assets/nx.jpg",
-			"assets/py.jpg","assets/ny.jpg",
-			"assets/pz.jpg","assets/nz.jpg"
-		};
-		textureParam->mTextures.resize(frameCount); // Resize to frameCount, each frame will have its own textures
-		for (int i = 0; i < frameCount; i++) {
-			auto tex = VKFW::vulkancore::Texture::create(mDevice, mcommandpool, cubemapPaths);
-			textureParam->mTextures[i].push_back(tex);
+	void UniformManager::attachCameraUniform() {
+		auto camParam = VKFW::MakeRef<VKFW::vulkancore::UniformParameter>();
+		camParam->mBinding = static_cast<uint32_t>(mUniformParameters.size());
+		camParam->mDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		camParam->mCount = 1;
+		camParam->mStageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		camParam->mSize = sizeof(cameraParameters);
+
+		for (int i = 0; i < mFrameCount; i++) {
+			auto buffer = VKFW::vulkancore::DataBuffer::createUniformBuffer(mDevice, camParam->mSize, nullptr);
+			camParam->mBuffers.push_back(buffer);
 		}
-		mUniformParameters.push_back(textureParam);
-
-
-		auto cameraParam = VKFW::MakeRef<VKFW::vulkancore::UniformParameter>();
-		cameraParam->mBinding = 3;
-		cameraParam->mDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		cameraParam->mCount = 1;
-		cameraParam->mStageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-		cameraParam->mSize = sizeof(cameraParameters);
-
-		for (int i = 0; i < frameCount; i++) {
-			auto buffer = VKFW::vulkancore::DataBuffer::createUniformBuffer(device, cameraParam->mSize, nullptr);
-			cameraParam->mBuffers.push_back(buffer);
-		}
-
-		mUniformParameters.push_back(cameraParam);
-
+		mUniformParameters.push_back(camParam);
 	}
 
 	void UniformManager::attachCubeMap(VKFW::Ref<VKFW::vulkancore::Image>& inImage) {
@@ -136,7 +124,26 @@ namespace VKFW::renderer {
 	void UniformManager::updateUniformBuffer(const NVPMatrices& vpMatrices, const ObjectUniform& objectUniform, const cameraParameters& cameraParams, const int frameCount) {
 		mUniformParameters[0]->mBuffers[frameCount]->updateBufferByMap(reinterpret_cast<const void*>(&vpMatrices), sizeof(NVPMatrices));
 		mUniformParameters[1]->mBuffers[frameCount]->updateBufferByMap(reinterpret_cast<const void*>(&objectUniform), sizeof(ObjectUniform));
-
-		mUniformParameters[3]->mBuffers[frameCount]->updateBufferByMap(reinterpret_cast<const void*>(&cameraParams), sizeof(cameraParameters));
+		mUniformParameters[2]->mBuffers[frameCount]->updateBufferByMap(reinterpret_cast<const void*>(&cameraParams), sizeof(cameraParameters));
+	}
+	
+	void UniformManager::updateUniformBufferByBinding(uint32_t binding, int frameIndex, const void* data, size_t size) {
+		for (auto& p : mUniformParameters) {
+			if (p && p->mBinding == binding) {
+				if (p->mDescriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER &&
+					p->mDescriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) {
+					throw std::runtime_error("updateUniformBufferByBinding: binding is not a UBO type.");
+				}
+				if (frameIndex < 0 || frameIndex >= (int)p->mBuffers.size()) {
+					throw std::runtime_error("updateUniformBufferByBinding: frameIndex out of range.");
+				}
+				if (size > p->mSize) {
+					throw std::runtime_error("updateUniformBufferByBinding: size > parameter buffer size.");
+				}
+				p->mBuffers[frameIndex]->updateBufferByMap(data, size);
+				return;
+			}
+		}
+		throw std::runtime_error("updateUniformBufferByBinding: binding not found.");
 	}
 }

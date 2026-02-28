@@ -19,10 +19,15 @@ namespace VKFW::renderer {
 		~UniformManager();
 		void init(const VKFW::Ref<VKFW::vulkancore::Device>& device, const VKFW::Ref<VKFW::vulkancore::CommandPool>& commandPool, int frameCount);
 		void build();
+		
+		void attachGlobalUniform(); // NVPMatrices (per-frame UBO)
+		void attachObjectUniform(); // ObjectUniform (per-frame UBO)
+		void attachCameraUniform(); // cameraParameters (per-frame UBO)
 		void attachCubeMap(VKFW::Ref<VKFW::vulkancore::Image>& inImage);
 		void attachImage(VKFW::Ref<VKFW::vulkancore::Image>& inImage);
 		void attachMapImage(VKFW::Ref<VKFW::vulkancore::Image>& inImage);
 		void updateUniformBuffer(const NVPMatrices& vpMatrices, const ObjectUniform& objectUniform, const cameraParameters& cameraParams, const int frameCount);
+		void updateUniformBufferByBinding(uint32_t binding, int frameIndex, const void* data, size_t size);
 
 		[[nodiscard]] auto getDescriptorLayout() const {
 			return mDescriptorLayout;

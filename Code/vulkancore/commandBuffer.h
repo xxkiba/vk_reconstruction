@@ -4,6 +4,7 @@
 #include "vk_common.h"
 #include "device.h"
 #include "commandPool.h"
+#include "pipeline.h"
 
 
 namespace VKFW::vulkancore{
@@ -31,7 +32,7 @@ namespace VKFW::vulkancore{
 
 		void beginRenderPass(const VkRenderPassBeginInfo& renderPassBeginInfo, VkSubpassContents subPassContents = VK_SUBPASS_CONTENTS_INLINE);
 
-		//void bindGraphicPipeline(const Pipeline::Ptr& pipeline);
+		void bindGraphicPipeline(const VKFW::Ref<Pipeline>& pipeline);
 
 		void bindVertexBuffer(const std::vector<VkBuffer>& buffers, uint32_t binding = 0, std::vector<VkDeviceSize> offsets = { 0 });
 		void bindIndexBuffer(VkBuffer buffer, uint32_t offset = 0, VkIndexType indexType = VK_INDEX_TYPE_UINT32);
