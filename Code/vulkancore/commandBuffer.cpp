@@ -59,9 +59,15 @@ namespace VKFW::vulkancore {
 		vkCmdBindDescriptorSets(mCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, firstSet, descriptorSetCount, pDescriptorSets, 0, nullptr);
 	}
 
-	//void CommandBuffer::pushConstants(const VkPipelineLayout layout, VkShaderStageFlagBits flags, uint32_t offset, uint32_t size, void* pData) {
-	//	vkCmdPushConstants(mCommandBuffer, layout, flags, 0, sizeof(NVPMatrices), pData);
-	//}
+	void CommandBuffer::pushConstants(
+		VkPipelineLayout layout,
+		VkShaderStageFlags stageFlags,
+		uint32_t offset,
+		uint32_t size,
+		const void* pData)
+	{
+		vkCmdPushConstants(mCommandBuffer, layout, stageFlags, offset, size, pData);
+	}
 
 	void CommandBuffer::draw(uint32_t vertexCount) {
 		vkCmdDraw(mCommandBuffer, vertexCount, 1, 0, 0);

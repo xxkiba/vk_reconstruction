@@ -38,7 +38,12 @@ namespace VKFW::vulkancore{
 		void bindIndexBuffer(VkBuffer buffer, uint32_t offset = 0, VkIndexType indexType = VK_INDEX_TYPE_UINT32);
 		void bindDescriptorSet(const VkPipelineLayout layout, const VkDescriptorSet& descriptorSet);
 		void bindDescriptorSets(const VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets);
-		void pushConstants(const VkPipelineLayout layout, VkShaderStageFlagBits flags, uint32_t offset, uint32_t size, void* pData);
+		void pushConstants(
+			VkPipelineLayout layout,
+			VkShaderStageFlags stageFlags,
+			uint32_t offset,
+			uint32_t size,
+			const void* pData);
 		void draw(uint32_t vertexCount);
 
 		void endRenderPass();

@@ -1,5 +1,5 @@
 #include "texture.h"
-
+#include "stb_image.h"
 namespace VKFW::vulkancore {
 
     // LDR texture (8-bit) constructor

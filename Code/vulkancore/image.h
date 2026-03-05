@@ -5,7 +5,7 @@
 #include "commandPool.h"
 #include "commandBuffer.h"
 #include "dataBuffer.h"
-#include "stb_image.h"
+
 
 namespace VKFW::vulkancore {
     
@@ -62,117 +62,18 @@ namespace VKFW::vulkancore {
             return VKFW::MakeRef<Image>(device, desc);
         }
 
-        static VKFW::Ref<Image> Image::createImageFromFile(const VKFW::Ref<Device>& device,
+        static VKFW::Ref<Image> createImageFromFile(const VKFW::Ref<Device>& device,
             const VKFW::Ref<CommandPool> commandPool,
             const std::string& filePath,
             VkFormat format = VK_FORMAT_R8G8B8A8_UNORM,
-            bool flipVertically = false) {
-            int texWidth = 0, texHeight = 0, texChannels = 0;
-
-            stbi_set_flip_vertically_on_load(flipVertically ? 1 : 0);
-
-            stbi_uc* pixels = stbi_load(filePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-            if (!pixels || texWidth <= 0 || texHeight <= 0) {
-                throw std::runtime_error("Image::createFromFile failed to load image or invalid dimensions! Path: " + filePath);
-            }
-
-            const VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth) * texHeight * 4; // STBI_rgb_alpha => RGBA8
-
-            // create MapImage
-            ImageDescription desc{};
-            desc.width = texWidth;
-            desc.height = texHeight;
-            desc.format = format;
-            desc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-            auto img = VKFW::MakeRef<Image>(device, desc);
-
-
-            // UNDEFINED -> TRANSFER_DST
-            img->transitionLayout(
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                commandPool
-            );
-
-            // copy staging -> image
-            img->fillImageData(static_cast<size_t>(imageSize), pixels, commandPool, false);
-
-            // TRANSFER_DST -> SHADER_READ_ONLY
-            img->transitionLayout(
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                commandPool
-            );
-
-            stbi_image_free(pixels);
-            return img;
-        }
+            bool flipVertically = false);
 
         static VKFW::Ref<Image> createImageFromHDRFile(
             const VKFW::Ref<Device>& device,
             const VKFW::Ref<CommandPool> commandPool,
             const std::string& filePath,
             bool flipVertically = false,
-            VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT)
-        {
-            // 1) only support float32 RGBA
-            if (format != VK_FORMAT_R32G32B32A32_SFLOAT) {
-                throw std::runtime_error("createImageFromHDRFile: only VK_FORMAT_R32G32B32A32_SFLOAT is supported in this version.");
-            }
-
-            int texWidth = 0, texHeight = 0, texChannels = 0;
-            stbi_set_flip_vertically_on_load(flipVertically ? 1 : 0);
-
-            // 2) load float image (keep original channels)
-            float* pixels = stbi_loadf(filePath.c_str(), &texWidth, &texHeight, &texChannels, 0);
-            if (!pixels || texWidth <= 0 || texHeight <= 0) {
-                throw std::runtime_error("Image::createImageFromHDRFile failed to load image or invalid dimensions! Path: " + filePath);
-            }
-
-            // 3) pack to RGBA float (same as your Texture code: A = 1.0)
-            const int pixelCount = texWidth * texHeight;
-            std::vector<float> floatRGBA(pixelCount * 4);
-
-            for (int i = 0; i < pixelCount; ++i) {
-                floatRGBA[i * 4 + 0] = (texChannels > 0) ? pixels[i * texChannels + 0] : 0.0f; // R
-                floatRGBA[i * 4 + 1] = (texChannels > 1) ? pixels[i * texChannels + 1] : 0.0f; // G
-                floatRGBA[i * 4 + 2] = (texChannels > 2) ? pixels[i * texChannels + 2] : 0.0f; // B
-                floatRGBA[i * 4 + 3] = (texChannels > 3) ? pixels[i * texChannels + 3] : 1.0f; // A
-            }
-
-            // 4) create image
-            ImageDescription desc{};
-            desc.width = static_cast<uint32_t>(texWidth);
-            desc.height = static_cast<uint32_t>(texHeight);
-            desc.format = format;
-            desc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-            desc.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-
-            auto img = VKFW::MakeRef<Image>(device, desc);
-
-            // 5) layout transitions + upload (same flow as LDR)
-            img->transitionLayout(
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                commandPool
-            );
-
-            const VkDeviceSize byteSize = static_cast<VkDeviceSize>(floatRGBA.size() * sizeof(float));
-            img->fillImageData(static_cast<size_t>(byteSize), floatRGBA.data(), commandPool, false);
-
-            img->transitionLayout(
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                commandPool
-            );
-
-            stbi_image_free(pixels);
-            return img;
-        }
+            VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT);
 
         static VKFW::Ref<Image> createDepthStencil(
             const VKFW::Ref<Device>& device,
@@ -202,7 +103,7 @@ namespace VKFW::vulkancore {
         }
 
 
-        static VKFW::Ref<Image> Image::createRenderTargetImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height, VkFormat inFormat) {
+        static VKFW::Ref<Image> createRenderTargetImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height, VkFormat inFormat) {
             
             ImageDescription desc{};
             desc.width = width;
@@ -212,7 +113,7 @@ namespace VKFW::vulkancore {
             desc.aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
             return VKFW::MakeRef<Image>(device, desc);
         }
-        static VKFW::Ref<Image> Image::createMultiSampleImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height,VkFormat inFormat) {
+        static VKFW::Ref<Image> createMultiSampleImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height,VkFormat inFormat) {
 
 
             ImageDescription desc{};
@@ -225,7 +126,7 @@ namespace VKFW::vulkancore {
             return VKFW::MakeRef<Image>(device, desc);
         }
 
-        static VKFW::Ref<Image> Image::createCubeMapImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height, VkFormat inFormat) {
+        static VKFW::Ref<Image> createCubeMapImage(const VKFW::Ref<Device>& device, uint32_t width, uint32_t height, VkFormat inFormat) {
 
             ImageDescription desc{};
             desc.width = width;
