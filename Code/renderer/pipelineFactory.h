@@ -33,7 +33,9 @@ namespace VKFW::renderer {
             VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT,
             VkFrontFace inFrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
             bool needFlipVewport = true,
-            bool enableDynamicViewPort = false
+            bool enableDynamicViewPort = false,
+            bool enableDepthTest = true,
+            bool enableDepthWrite = true
         );
 
         // ------------------------------------------------------------
@@ -50,7 +52,9 @@ namespace VKFW::renderer {
             VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT,
             VkFrontFace inFrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
             bool needFlipVewport = true,
-            bool enableDynamicViewPort = false
+            bool enableDynamicViewPort = false,
+            bool enableDepthTest = false,
+            bool enableDepthWrite = false
         );
 
         // ------------------------------------------------------------

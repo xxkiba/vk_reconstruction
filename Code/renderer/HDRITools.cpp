@@ -400,6 +400,7 @@ namespace VKFW::renderer {
 		mOffscreenSphereNode->mUniformManager->init(mDevice, mCommandPool, 1);
 		mOffscreenSphereNode->mUniformManager->attachGlobalUniform();
 		mOffscreenSphereNode->mUniformManager->attachObjectUniform();
+		mOffscreenSphereNode->mUniformManager->attachCameraUniform();
 		mOffscreenSphereNode->mUniformManager->attachCubeMap(HDRIToolsCubMapImage);
 		mOffscreenSphereNode->mUniformManager->build();
 		mOffscreenSphereNode->mModels.push_back(skyboxModel);
@@ -606,6 +607,9 @@ namespace VKFW::renderer {
 		mOffscreenSphereNode = VKFW::MakeRef<RenderNode>();
 		mOffscreenSphereNode->mUniformManager = UniformManager::create();
 		mOffscreenSphereNode->mUniformManager->init(mDevice, mCommandPool, 1);
+		mOffscreenSphereNode->mUniformManager->attachGlobalUniform();
+		mOffscreenSphereNode->mUniformManager->attachObjectUniform();
+		mOffscreenSphereNode->mUniformManager->attachCameraUniform();
 		mOffscreenSphereNode->mUniformManager->build();
 		mOffscreenSphereNode->mModels.push_back(skyboxModel);
 		mOffscreenSphereNode->mModels[0]->setModelMatrix(glm::mat4(1.0f));

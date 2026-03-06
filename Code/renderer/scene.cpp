@@ -48,6 +48,7 @@ namespace VKFW::renderer {
         // For now, we call the ones you already implemented.
         um->attachGlobalUniform();
         um->attachObjectUniform();
+		um->attachCameraUniform(); // you can implement this as a simple wrapper around attachGlobalUniform with a different binding, or implement it properly with its own UBO and binding.
 
         // TODO (required if your init() is empty-init version):
         //   Add UniformManager::attachCameraUniform() (per-frame cameraParameters UBO)
@@ -66,7 +67,7 @@ namespace VKFW::renderer {
         // -----------------------
         // Cameras (migrated from old initWindow)
         // -----------------------
-        mMainCamera.Init(glm::vec3(0.0f, 0.0f, 0.0f), 5.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+        mMainCamera.Init(glm::vec3(0.0f, 0.0f, 0.0f), 5.0f, glm::vec3(0.0f, -0.2f, 1.0f));
         mMainCamera.setPerpective(45.0f, static_cast<float>(mWidth) / static_cast<float>(mHeight), 0.1f, 1000.0f);
         mMainCamera.setSpeed(0.001f);
 
@@ -229,7 +230,9 @@ namespace VKFW::renderer {
                 mDevice->getMaxUsableSampleCount(),
                 VK_FRONT_FACE_COUNTER_CLOCKWISE,
                 /*flip*/ true,
-                /*dyn*/ false
+                /*dyn*/ false,
+                true,   // depthTest
+                true    // depthWrite
             );
         }
 
@@ -265,7 +268,9 @@ namespace VKFW::renderer {
                 mDevice->getMaxUsableSampleCount(),
                 VK_FRONT_FACE_CLOCKWISE,
                 /*flip*/ true,
-                /*dyn*/ false
+                /*dyn*/ false,
+                true,   // depthTest
+                false
             );
         }
     }

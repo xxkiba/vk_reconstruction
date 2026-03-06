@@ -2,7 +2,7 @@
 
 #extension GL_KHR_vulkan_glsl : enable
 
-layout(set = 0, binding = 4) uniform samplerCube hdrSampler;
+layout(set = 0, binding = 3) uniform samplerCube hdrSampler;
 
 layout(location = 0) in vec3 V_Texcoord;
 layout(location = 0) out vec4 FragColor;

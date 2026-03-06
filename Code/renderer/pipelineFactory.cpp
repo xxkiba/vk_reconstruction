@@ -166,7 +166,9 @@ namespace VKFW::renderer {
         VkSampleCountFlagBits sampleCount,
         VkFrontFace inFrontFace,
         bool needFlipVewport,
-        bool enableDynamicViewPort)
+        bool enableDynamicViewPort,
+        bool enableDepthTest,
+        bool enableDepthWrite)
     {
         auto p = VKFW::MakeRef<VKFW::vulkancore::Pipeline>(mDevice, renderPass);
 
@@ -186,8 +188,8 @@ namespace VKFW::renderer {
         p->mVertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDes.size());
         p->mVertexInputState.pVertexAttributeDescriptions = attributeDes.data();
 
-        // Match your OffscreenPipeline defaults: depthTest=true, depthWrite=false
-        setupCommonFixedFunction(p, sampleCount, inFrontFace, /*depthTest*/true, /*depthWrite*/false);
+        // Match your OffscreenPipeline defaults: depthTest=true, depthWrite=true
+        setupCommonFixedFunction(p, sampleCount, inFrontFace, enableDepthTest, enableDepthWrite);
         setupBlendDefault(p);
         setupPipelineLayout(p, descriptorSetLayouts, pushConstantRanges);
 
@@ -208,7 +210,9 @@ namespace VKFW::renderer {
         VkSampleCountFlagBits sampleCount,
         VkFrontFace inFrontFace,
         bool needFlipVewport,
-        bool enableDynamicViewPort)
+        bool enableDynamicViewPort,
+        bool enableDepthTest,
+        bool enableDepthWrite)
     {
         auto p = VKFW::MakeRef<VKFW::vulkancore::Pipeline>(mDevice, renderPass);
 
@@ -229,7 +233,7 @@ namespace VKFW::renderer {
         p->mVertexInputState.pVertexAttributeDescriptions = nullptr;
 
         // Match your previous screen-quad: depth off
-        setupCommonFixedFunction(p, sampleCount, inFrontFace, /*depthTest*/false, /*depthWrite*/false);
+        setupCommonFixedFunction(p, sampleCount, inFrontFace, enableDepthTest, enableDepthWrite);
         setupBlendDefault(p);
         setupPipelineLayout(p, descriptorSetLayouts, pushConstantRanges);
 

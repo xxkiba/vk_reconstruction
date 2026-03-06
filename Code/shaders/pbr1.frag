@@ -8,22 +8,21 @@ layout(location=3)in mat3 V_TBN;
 
 layout(location=0)out vec4 FragColor;
 
-layout(set = 0, binding = 2) uniform samplerCube skyboxSampler;
-layout(set = 0, binding = 3) uniform cameraParameters{
+layout(set = 0, binding = 2) uniform cameraParameters{
     vec4 CameraWorldPosition;
 };
 
-layout(set =0, binding = 4) uniform samplerCube U_prefilteredColor;
-layout(set = 0, binding = 5) uniform samplerCube U_DiffuseIrradiance;
-layout(set = 0, binding = 6) uniform sampler2D U_BRDFLUT;
+layout(set =0, binding = 3) uniform samplerCube U_prefilteredColor;
+layout(set = 0, binding = 4) uniform samplerCube U_DiffuseIrradiance;
+layout(set = 0, binding = 5) uniform sampler2D U_BRDFLUT;
 
-layout(binding=7)uniform sampler2D U_Albedo;//base/diffuse
-layout(binding=8)uniform sampler2D U_Normal;
-layout(binding=9)uniform sampler2D U_Emissive;
-layout(binding=10)uniform sampler2D U_AO;
-layout(binding=11)uniform sampler2D U_Metallic;
-layout(binding=12)uniform sampler2D U_Roughness;
-layout(binding=13)uniform sampler2D U_DefaultMetalRoughness;
+layout(binding=6)uniform sampler2D U_Albedo;//base/diffuse
+layout(binding=7)uniform sampler2D U_Normal;
+layout(binding=8)uniform sampler2D U_Emissive;
+layout(binding=9)uniform sampler2D U_AO;
+layout(binding=10)uniform sampler2D U_Metallic;
+layout(binding=11)uniform sampler2D U_Roughness;
+layout(binding=12)uniform sampler2D U_DefaultMetalRoughness;
 
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler[3];
