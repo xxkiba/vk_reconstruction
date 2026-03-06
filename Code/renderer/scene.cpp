@@ -58,25 +58,26 @@ namespace VKFW::renderer {
     }
 
     void Scene::init() {
+        initStaticResources();
         initResourcesAndNodes();
         buildPipelines();
         recordCommandBuffers();
     }
 
-    void Scene::initResourcesAndNodes() {
-        // -----------------------
-        // Cameras (migrated from old initWindow)
-        // -----------------------
-        mMainCamera.Init(glm::vec3(0.0f, 0.0f, 0.0f), 5.0f, glm::vec3(0.0f, -0.2f, 1.0f));
-        mMainCamera.setPerpective(45.0f, static_cast<float>(mWidth) / static_cast<float>(mHeight), 0.1f, 1000.0f);
-        mMainCamera.setSpeed(0.001f);
+    void Scene::initStaticResources() {
+        if (mStaticReady) return;
 
-        // -----------------------
-        // HDRI resources (migrated from old initVulkan HDRI section)
-        // -----------------------
+        // Camera init 
+        mMainCamera = VKFW::MakeRef<Camera>();
+        mMainCamera->Init(glm::vec3(0.0f), 5.0f, glm::vec3(0.0f, -0.2f, 1.0f));
+        if (mHeight > 0) {
+            mMainCamera->setPerpective(45.0f, float(mWidth) / float(mHeight), 0.1f, 1000.0f);
+        }
+        mMainCamera->setSpeed(0.001f);
+
+        // HDRI tools/resources
         mHDRITools = HDRITools::create(mDevice, mCommandPool);
 
-        // HDRI cubemap
         mHDRICubemap = mHDRITools->LoadHDRIToolsCubeMapFromFile(
             mDevice, mCommandPool,
             "assets/1.hdr",
@@ -85,31 +86,55 @@ namespace VKFW::renderer {
             "shaders/HDRI2CubemapFrag.spv"
         );
 
-        // Diffuse irradiance
         mDiffuseIrradianceMap = mHDRITools->generateDiffuseIrradianceMap(
-            mHDRICubemap,
-            mDevice, mCommandPool,
+            mHDRICubemap, mDevice, mCommandPool,
             32, 32,
             "shaders/SkyboxVert.spv",
             "shaders/CaptureDiffuseIrradianceFrag.spv"
         );
 
-        // Specular prefilter
         mSpecularPrefilterMap = mHDRITools->generateSpecularPrefilterMap(
-            mHDRICubemap,
-            mDevice, mCommandPool,
+            mHDRICubemap, mDevice, mCommandPool,
             128, 128,
             "shaders/SkyboxVert.spv",
             "shaders/CaptureSpecularPrefilterFrag.spv"
         );
 
-        // BRDF LUT
         mBRDFLUT = mHDRITools->generateBRDFLUT(
             mDevice, mCommandPool,
             512, 512,
             "shaders/full_screen_triangle.spv",
             "shaders/generateBRDFFrag.spv"
         );
+
+        // Helmet maps cache 
+        mHelmetAlbedo = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_albedo.jpg");
+        mHelmetNormal = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_normal.jpg");
+        mHelmetMetallic = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Metallic.png");
+        mHelmetRoughness = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Roughness.png");
+        mHelmetAO = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_AO.jpg");
+        mHelmetEmissive = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_emissive.jpg");
+        mHelmetDefaultMR = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_metalRoughness.jpg");
+
+        // Models cache 
+        mHelmetModel = Model::create(mDevice);
+        mHelmetModel->loadBattleFireModel("assets/DamagedHelmet.staticmesh", mDevice);
+
+        mSkyboxModel = Model::create(mDevice);
+        mSkyboxModel->loadBattleFireComponent("assets/skybox.staticmesh", mDevice);
+
+        // Push constants
+        mPushConstantManager = PushConstantManager::create();
+        mPushConstantManager->init();
+
+        // Factory
+        if (!mPipelineFactory) mPipelineFactory = PipelineFactory::create(mDevice);
+
+        mStaticReady = true;
+    }
+
+    void Scene::initResourcesAndNodes() {
+        const uint32_t imageCount = getImageCount();
 
         // -----------------------
         // Nodes creation
@@ -150,21 +175,13 @@ namespace VKFW::renderer {
         mOffscreenPBRNode->mUniformManager->attachImage(mBRDFLUT);
 
         // Helmet maps (migrated from old)
-        auto Albedo = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_albedo.jpg", VK_FORMAT_R8G8B8A8_UNORM);
-        auto Normal = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_normal.jpg", VK_FORMAT_R8G8B8A8_UNORM);
-        auto Metallic = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
-        auto Roughness = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
-        auto AO = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_AO.jpg", VK_FORMAT_R8G8B8A8_UNORM);
-        auto Emissive = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_emissive.jpg", VK_FORMAT_R8G8B8A8_UNORM);
-        auto DefaultMR = VKFW::vulkancore::Image::createImageFromFile(mDevice, mCommandPool, "assets/DamagedHelmet/Default_metalRoughness.jpg", VK_FORMAT_R8G8B8A8_UNORM);
-
-        mOffscreenPBRNode->mUniformManager->attachMapImage(Albedo);
-        mOffscreenPBRNode->mUniformManager->attachMapImage(Normal);
-        mOffscreenPBRNode->mUniformManager->attachMapImage(Emissive);
-        mOffscreenPBRNode->mUniformManager->attachMapImage(AO);
-        mOffscreenPBRNode->mUniformManager->attachMapImage(Metallic);
-        mOffscreenPBRNode->mUniformManager->attachMapImage(Roughness);
-        mOffscreenPBRNode->mUniformManager->attachMapImage(DefaultMR);
+        mOffscreenPBRNode->mUniformManager->attachMapImage(mHelmetAlbedo);
+        mOffscreenPBRNode->mUniformManager->attachMapImage(mHelmetNormal);
+        mOffscreenPBRNode->mUniformManager->attachMapImage(mHelmetEmissive);
+        mOffscreenPBRNode->mUniformManager->attachMapImage(mHelmetAO);
+        mOffscreenPBRNode->mUniformManager->attachMapImage(mHelmetMetallic);
+        mOffscreenPBRNode->mUniformManager->attachMapImage(mHelmetRoughness);
+        mOffscreenPBRNode->mUniformManager->attachMapImage(mHelmetDefaultMR);
 
         mOffscreenPBRNode->mUniformManager->build();
 
@@ -186,13 +203,6 @@ namespace VKFW::renderer {
             mScreenQuadNode->mMaterial->init(mDevice, mCommandPool, (int)getImageCount());
         }
 
-        // Skybox usually uses only uniform manager (cubemap). Keep material empty.
-
-        // -----------------------
-        // Push constants (kept to match old behavior)
-        // -----------------------
-        mPushConstantManager = PushConstantManager::create();
-        mPushConstantManager->init();
 
         // -----------------------
         // Models (migrated)
@@ -200,16 +210,14 @@ namespace VKFW::renderer {
         // Screen quad uses fullscreen triangle => no model
         // Offscreen PBR model
         {
-            auto offscreenModel = Model::create(mDevice);
-            offscreenModel->loadBattleFireModel("assets/DamagedHelmet.staticmesh", mDevice);
-            mOffscreenPBRNode->mModels.push_back(offscreenModel);
+            mOffscreenPBRNode->mModels.clear();
+            mOffscreenPBRNode->mModels.push_back(mHelmetModel);
             mOffscreenPBRNode->mModels[0]->setModelMatrix(glm::mat4(1.0f));
         }
         // Skybox model
         {
-            auto skyboxModel = Model::create(mDevice);
-            skyboxModel->loadBattleFireComponent("assets/skybox.staticmesh", mDevice);
-            mSkyboxNode->mModels.push_back(skyboxModel);
+            mSkyboxNode->mModels.clear();
+            mSkyboxNode->mModels.push_back(mSkyboxModel);
             mSkyboxNode->mModels[0]->setModelMatrix(glm::mat4(1.0f));
         }
     }
@@ -383,16 +391,16 @@ namespace VKFW::renderer {
 
     void Scene::update(float dt, uint32_t frameIndex) {
         // migrate old camera rotate + uniform update
-        mOffscreenPBRNode->mCamera.horizontalRoundRotate(dt, glm::vec3(0.0f), 5.0f, 30.0f);
+        mMainCamera->horizontalRoundRotate(dt, glm::vec3(0.0f), 5.0f, 30.0f);
 
-        mNVPMatrices.mViewMatrix = mOffscreenPBRNode->mCamera.getViewMatrix();
-        mNVPMatrices.mProjectionMatrix = mOffscreenPBRNode->mCamera.getProjectMatrix();
+        mNVPMatrices.mViewMatrix = mMainCamera->getViewMatrix();
+        mNVPMatrices.mProjectionMatrix = mMainCamera->getProjectMatrix();
+        mCameraParameters.CameraWorldPosition = mMainCamera->getCamPosition();
 
         // old code used inverse(modelMatrix) for normal matrix; keep behavior
         if (!mOffscreenPBRNode->mModels.empty() && mOffscreenPBRNode->mModels[0]) {
             mNVPMatrices.mNormalMatrix = glm::transpose(glm::inverse(mOffscreenPBRNode->mModels[0]->getUniform().mModelMatrix));
         }
-        mCameraParameters.CameraWorldPosition = mOffscreenPBRNode->mCamera.getCamPosition();
 
         mOffscreenPBRNode->mUniformManager->updateUniformBuffer(
             mNVPMatrices,
@@ -401,17 +409,13 @@ namespace VKFW::renderer {
             (int)frameIndex
         );
 
-        // skybox camera rotate
-        mSkyboxNode->mCamera.horizontalRoundRotate(dt, glm::vec3(0.0f), 5.0f, 30.0f);
-        mNVPMatrices.mViewMatrix = mSkyboxNode->mCamera.getViewMatrix();
-        mNVPMatrices.mProjectionMatrix = mSkyboxNode->mCamera.getProjectMatrix();
+
         if (!mSkyboxNode->mModels.empty() && mSkyboxNode->mModels[0]) {
             mNVPMatrices.mNormalMatrix = glm::transpose(glm::inverse(mSkyboxNode->mModels[0]->getUniform().mModelMatrix));
             mSkyboxNode->mModels[0]->setModelMatrix(
-                glm::translate(glm::mat4(1.0f), glm::vec3(mSkyboxNode->mCamera.getCamPosition()))
+                glm::translate(glm::mat4(1.0f), glm::vec3(mMainCamera->getCamPosition()))
             );
         }
-        mCameraParameters.CameraWorldPosition = mSkyboxNode->mCamera.getCamPosition();
 
         mSkyboxNode->mUniformManager->updateUniformBuffer(
             mNVPMatrices,
@@ -423,6 +427,47 @@ namespace VKFW::renderer {
         // If you want screen quad node to also have global/camera uniforms updated, do it here.
     }
 
+    // scene.cpp
+    void Scene::detachSwapchainRefs()
+    {
+        // 1) Command buffers first (they reference render passes + framebuffers)
+        mCommandBuffers.clear();
+        mCommandBuffers.shrink_to_fit();
+
+        // 2) Pipelines (they reference pipeline layout + render pass)
+        mScreenQuadPipeline.reset();
+        mPBRPipeline.reset();
+        mSkyboxPipeline.reset();
+
+        // 3) Per-frame resources that are sized by imageCount
+        if (mScreenQuadNode) {
+            if (mScreenQuadNode->mMaterial) mScreenQuadNode->mMaterial.reset();
+            if (mScreenQuadNode->mUniformManager) mScreenQuadNode->mUniformManager.reset();
+        }
+        if (mOffscreenPBRNode) {
+            
+            if (mOffscreenPBRNode->mMaterial) mOffscreenPBRNode->mMaterial.reset();
+            if (mOffscreenPBRNode->mUniformManager) mOffscreenPBRNode->mUniformManager.reset();
+        }
+        if (mSkyboxNode) {
+            if (mSkyboxNode->mUniformManager) mSkyboxNode->mUniformManager.reset();
+            if (mSkyboxNode->mMaterial) mSkyboxNode->mMaterial.reset();
+        }
+
+        // 4) Render targets / render pass
+        mOffscreenRenderTarget.reset();
+        mSwapChainRenderPass.reset();
+
+        // 5) The swapchain LAST (so old swapchain really dies)
+        mSwapChain.reset();
+    }
+
+    void Scene::rebuildSwapchainDependent() {
+        initResourcesAndNodes();
+        buildPipelines();
+        recordCommandBuffers();
+    }
+
     void Scene::onResize(
         const VKFW::Ref<VKFW::vulkancore::SwapChain>& swapChain,
         const VKFW::Ref<VKFW::vulkancore::RenderPass>& swapChainRenderPass,
@@ -430,19 +475,46 @@ namespace VKFW::renderer {
         uint32_t width,
         uint32_t height)
     {
+        if (!swapChain || !swapChainRenderPass || !offscreenRenderTarget) {
+            throw std::runtime_error("Scene::onResize: null swapChain/renderPass/offscreenRenderTarget");
+        }
+
+        
+        auto extent = swapChain->getSwapChainExtent();
+        mWidth = extent.width;
+        mHeight = extent.height;
+
+        
+        if (mWidth == 0 || mHeight == 0) {
+            mWidth = width;
+            mHeight = height;
+        }
+
+        
         mSwapChain = swapChain;
         mSwapChainRenderPass = swapChainRenderPass;
         mOffscreenRenderTarget = offscreenRenderTarget;
-        mWidth = width;
-        mHeight = height;
 
-        // rebuild screen quad material with new RT images
-        mScreenQuadNode->mMaterial = Material::create();
-        mScreenQuadNode->mMaterial->attachImages(mOffscreenRenderTarget->getRenderTargetImages());
-        mScreenQuadNode->mMaterial->init(mDevice, mCommandPool, (int)getImageCount());
+        
+        vkDeviceWaitIdle(mDevice->getDevice());
 
-        buildPipelines();
-        recordCommandBuffers();
+        
+        mCommandBuffers.clear();
+
+        mPBRPipeline.reset();
+        mScreenQuadPipeline.reset();
+        mSkyboxPipeline.reset();
+
+        
+        mScreenQuadNode.reset();
+        mOffscreenPBRNode.reset();
+        mSkyboxNode.reset();
+
+        
+        
+
+        
+        rebuildSwapchainDependent();
     }
 
 } // namespace VKFW::renderer

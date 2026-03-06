@@ -51,7 +51,7 @@ namespace VKFW::renderer {
         void update(float dt, uint32_t frameIndex);
 
         // record all command buffers (migrated from old createCommandBuffers)
-        void recordCommandBuffers();
+        
 
         // access command buffer by swapchain image index
         VKFW::Ref<VKFW::vulkancore::CommandBuffer> getCommandBuffer(uint32_t imageIndex) const {
@@ -59,7 +59,7 @@ namespace VKFW::renderer {
         }
 
         uint32_t getImageCount() const;
-
+        void detachSwapchainRefs();
         // called when swapchain/offscreen resized/recreated
         void onResize(
             const VKFW::Ref<VKFW::vulkancore::SwapChain>& swapChain,
@@ -69,18 +69,42 @@ namespace VKFW::renderer {
             uint32_t height);
 
         // scene owns a "main camera"
-        Camera& getMainCamera() { return mMainCamera; }
-        const Camera& getMainCamera() const { return mMainCamera; }
+        VKFW::Ref<Camera> getMainCamera() { return mMainCamera; }
+        VKFW::Ref<const Camera> getMainCamera() const { return mMainCamera; }
 
     private:
         // ensure uniform manager has required per-frame UBOs (NVP/Object/Camera) before build()
         void ensureDefaultPerFrameUBOs(const UniformManager::Ptr& um);
 
         // build pipelines using PipelineFactory
-        void buildPipelines();
+        
 
         // build nodes, materials, uniforms, models, and HDRI resources
+        
+
+    private:
+        void initStaticResources();    
         void initResourcesAndNodes();
+        void buildPipelines();
+        void recordCommandBuffers();
+
+        void rebuildSwapchainDependent();        
+
+    private:
+        bool mStaticReady = false;
+
+		// Helmet textures
+        VKFW::Ref<VKFW::vulkancore::Image> mHelmetAlbedo{ nullptr };
+        VKFW::Ref<VKFW::vulkancore::Image> mHelmetNormal{ nullptr };
+        VKFW::Ref<VKFW::vulkancore::Image> mHelmetMetallic{ nullptr };
+        VKFW::Ref<VKFW::vulkancore::Image> mHelmetRoughness{ nullptr };
+        VKFW::Ref<VKFW::vulkancore::Image> mHelmetAO{ nullptr };
+        VKFW::Ref<VKFW::vulkancore::Image> mHelmetEmissive{ nullptr };
+        VKFW::Ref<VKFW::vulkancore::Image> mHelmetDefaultMR{ nullptr };
+
+        // models
+        VKFW::Ref<Model> mHelmetModel{ nullptr };
+        VKFW::Ref<Model> mSkyboxModel{ nullptr };
 
     private:
         VKFW::Ref<VKFW::vulkancore::Device> mDevice;
@@ -95,7 +119,7 @@ namespace VKFW::renderer {
         VKFW::Ref<PipelineFactory> mPipelineFactory{ nullptr };
 
         // scene-level camera
-        Camera mMainCamera{};
+        VKFW::Ref<Camera> mMainCamera{ nullptr };
 
         // HDRI tools/resources
         VKFW::Ref<HDRITools> mHDRITools{ nullptr };

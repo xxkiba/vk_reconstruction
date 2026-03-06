@@ -99,7 +99,7 @@ namespace VKFW::renderer {
         UniformManager::Ptr mUniformManager{ nullptr };
 
         // RenderNode owns a camera for this render instance
-        Camera mCamera{};
+        VKFW::Ref<Camera> mCamera{ nullptr };
 
         // Transform fields
         glm::vec4 mPosition{ 0.0f, 0.0f, 0.0f, 1.0f };

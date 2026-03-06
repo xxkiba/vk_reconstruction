@@ -2,6 +2,7 @@
 #include "swapChain.h"
 
 namespace VKFW::vulkancore {
+
 	SwapChain::SwapChain(const VKFW::Ref<Device>& device, const VKFW::Ref<VKFW::platform::Window>& window, const VKFW::Ref<WindowSurface>& surface, const VKFW::Ref<CommandPool>& commandPool)
 		: mDevice(device), mWindow(window), mSurface(surface), mCommandPool(commandPool) {
 		// Initialize swap chain here
@@ -63,8 +64,11 @@ namespace VKFW::vulkancore {
 		// Initialize the clipping rectangle, if the current window is obstacle, the swap chain will be clipped to the window size,but will influence the callback
 		createInfo.clipped = VK_TRUE; // Clipping is enabled
 
-		if (vkCreateSwapchainKHR(mDevice->getDevice(), &createInfo, nullptr, &mSwapChain) != VK_SUCCESS) {
-			throw std::runtime_error("Error: Failed to create swap chain!");
+		VkResult r = vkCreateSwapchainKHR(mDevice->getDevice(), &createInfo, nullptr, &mSwapChain);
+		if (r != VK_SUCCESS) {
+			std::ostringstream oss;
+			oss << "vkCreateSwapchainKHR failed: " << int(r) << " (" << VkResultToString(r) << ")";
+			throw std::runtime_error(oss.str());
 		}
 
 		mSwapChainFormat = surfaceFormat.format; // Set the swap chain format

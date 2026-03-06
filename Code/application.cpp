@@ -177,10 +177,35 @@ namespace VKFW {
     }
 
     void Application::recreateSwapChain() {
+
+        // Wait until the window size is not zero.
+        int fbW = 0, fbH = 0;
+        glfwGetFramebufferSize(mWindow->getWindow(), &fbW, &fbH);
+        while (fbW == 0 || fbH == 0) {
+            glfwWaitEvents();
+            glfwGetFramebufferSize(mWindow->getWindow(), &fbW, &fbH);
+        }
+
         vkDeviceWaitIdle(mDevice->getDevice());
 
+        mImageAvailableSemaphores.clear();
+        mRenderFinishedSemaphores.clear();
+        mFences.clear();
+        mOffscreenRenderTarget.reset();
+        mRenderPass.reset();
+        mSwapChain.reset();
+        mCurrentFrame = 0;
+        if (mScene) {
+            mScene->detachSwapchainRefs();
+        }
         // recreate swapchain
         mSwapChain = MakeRef<vulkancore::SwapChain>(mDevice, mWindow, mSurface, mCommandPool);
+
+		// use swapchain extent as new width and height
+        auto extent = mSwapChain->getSwapChainExtent();
+        mWidth = (int)extent.width;
+        mHeight = (int)extent.height;
+
 
         // render pass might be rebuild or reused depending on your factory; simplest rebuild:
         mRenderPass = factories::RenderPassFactory::CreateMsaaRenderPass(
@@ -232,13 +257,13 @@ namespace VKFW {
 
     void Application::onMouseMove(double x, double y) {
         if (mScene) {
-            mScene->getMainCamera().onMouseMove(x, y);
+            if (auto cam = mScene->getMainCamera()) cam->onMouseMove(x, y);
         }
     }
 
     void Application::onKeyMove(platform::CameraMove move) {
         if (!mScene) return;
-        mScene->getMainCamera().move(toCameraMove(move));
+        if (auto cam = mScene->getMainCamera()) cam->move(toCameraMove(move));
     }
 
 } // namespace VKFW

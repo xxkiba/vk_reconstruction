@@ -10,7 +10,7 @@ namespace VKFW::renderer {
         // Keep old code working
         mUniformManager = UniformManager::create();
         mMaterial = Material::create();
-        mCamera = Camera();
+        //mCamera = Camera();
 
         mTransformDirty = true;
     }
