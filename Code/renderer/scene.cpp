@@ -118,10 +118,10 @@ namespace VKFW::renderer {
 
         // Models cache 
         mHelmetModel = Model::create(mDevice);
-        mHelmetModel->loadBattleFireModel("assets/DamagedHelmet.staticmesh", mDevice);
+		mHelmetModel->loadGltfModel("assets/DamagedHelmet.gltf", mDevice);
 
         mSkyboxModel = Model::create(mDevice);
-        mSkyboxModel->loadBattleFireComponent("assets/skybox.staticmesh", mDevice);
+		mSkyboxModel->loadModel("assets/skybox_cube.obj", mDevice);
 
         // Push constants
         mPushConstantManager = PushConstantManager::create();

@@ -62,7 +62,7 @@ namespace VKFW::renderer {
 		);
 
 		Model::Ptr skyboxModel = Model::create(mDevice);
-		skyboxModel->loadBattleFireComponent("assets/skybox.staticmesh", mDevice);
+		skyboxModel->loadModel("assets/skybox_cube.obj",mDevice);
 		mOffscreenSphereNode = VKFW::MakeRef<RenderNode>();
 		mOffscreenSphereNode->mUniformManager = UniformManager::create();
 		mOffscreenSphereNode->mUniformManager->init(mDevice, mCommandPool, 1);
@@ -225,7 +225,7 @@ namespace VKFW::renderer {
 		);
 
 		Model::Ptr skyboxModel = Model::create(mDevice);
-		skyboxModel->loadBattleFireComponent("assets/skybox.staticmesh", mDevice);
+		skyboxModel->loadModel("assets/skybox_cube.obj",mDevice);
 
 		mOffscreenSphereNode = VKFW::MakeRef<RenderNode>();
 		mOffscreenSphereNode->mUniformManager = UniformManager::create();
@@ -394,7 +394,7 @@ namespace VKFW::renderer {
 
 
 		Model::Ptr skyboxModel = Model::create(mDevice);
-		skyboxModel->loadBattleFireComponent("assets/skybox.staticmesh", mDevice);
+		skyboxModel->loadModel("assets/skybox_cube.obj",mDevice);
 		mOffscreenSphereNode = VKFW::MakeRef<RenderNode>();
 		mOffscreenSphereNode->mUniformManager = UniformManager::create();
 		mOffscreenSphereNode->mUniformManager->init(mDevice, mCommandPool, 1);
@@ -602,7 +602,7 @@ namespace VKFW::renderer {
 		);
 
 		Model::Ptr skyboxModel = Model::create(mDevice);
-		skyboxModel->loadBattleFireComponent("assets/skybox.staticmesh", mDevice);
+		skyboxModel->loadModel("assets/skybox_cube.obj",mDevice);
 
 		mOffscreenSphereNode = VKFW::MakeRef<RenderNode>();
 		mOffscreenSphereNode->mUniformManager = UniformManager::create();

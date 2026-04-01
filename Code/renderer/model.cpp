@@ -1,7 +1,15 @@
 #include "model.h"
-
+#include <glm/gtc/type_ptr.hpp>              
+#include <glm/gtc/quaternion.hpp> 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
+
+#define TINYGLTF_IMPLEMENTATION
+#define TINYGLTF_NO_STB_IMAGE
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
+#include "tiny_gltf.h"
 
 namespace VKFW::renderer {
 
@@ -237,6 +245,186 @@ namespace VKFW::renderer {
 		setVertexInputBindingDescriptions();
 		setAttributeDescription();
 
+	}
+
+	void Model::loadGltfModel(const std::string& path, const VKFW::Ref<VKFW::vulkancore::Device>& device) {
+		tinygltf::Model gltfModel;
+		tinygltf::TinyGLTF loader;
+		std::string err, warn;
+		// We don't need image data, set a no-op loader to satisfy tinygltf
+		loader.SetImageLoader([](tinygltf::Image*, const int, std::string*, std::string*,
+			int, int, const unsigned char*, int, void*) { return true; }, nullptr);
+
+		bool loaded = (path.size() >= 4 && path.substr(path.size() - 4) == ".glb")
+			? loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path)
+			: loader.LoadASCIIFromFile(&gltfModel, &err, &warn, path);
+
+		if (!loaded)
+			throw std::runtime_error("Failed to load glTF: " + err);
+
+		mBattleFireVertexDatas.clear();
+		mSubMeshes.clear();
+		mIndexDatas.clear();
+		mIndexBuffer.reset();
+
+		for (int meshIdx = 0; meshIdx < (int)gltfModel.meshes.size(); ++meshIdx) {
+			const auto& mesh = gltfModel.meshes[meshIdx];
+
+			// Collect node transform for this mesh
+			glm::mat4 nodeMatrix(1.0f);
+			for (const auto& node : gltfModel.nodes) {
+				if (node.mesh != meshIdx) continue;
+				if (!node.matrix.empty()) {
+					nodeMatrix = glm::make_mat4(node.matrix.data());
+				} else {
+					if (!node.translation.empty())
+						nodeMatrix = glm::translate(nodeMatrix, glm::vec3(
+							(float)node.translation[0], (float)node.translation[1], (float)node.translation[2]));
+					if (!node.rotation.empty()) {
+						// gltf quaternion is (x,y,z,w); glm::quat ctor is (w,x,y,z)
+						glm::quat q((float)node.rotation[3], (float)node.rotation[0],
+									(float)node.rotation[1], (float)node.rotation[2]);
+						nodeMatrix *= glm::mat4_cast(q);
+					}
+					if (!node.scale.empty())
+						nodeMatrix = glm::scale(nodeMatrix, glm::vec3(
+							(float)node.scale[0], (float)node.scale[1], (float)node.scale[2]));
+				}
+				break;
+			}
+			glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(nodeMatrix)));
+
+			for (size_t primIdx = 0; primIdx < mesh.primitives.size(); ++primIdx) {
+				const auto& primitive = mesh.primitives[primIdx];
+
+				auto getAttr = [&](const std::string& name) -> int {
+					auto it = primitive.attributes.find(name);
+					return it != primitive.attributes.end() ? it->second : -1;
+				};
+
+				int posIdx  = getAttr("POSITION");
+				int normIdx = getAttr("NORMAL");
+				int uvIdx   = getAttr("TEXCOORD_0");
+				int tanIdx  = getAttr("TANGENT");
+
+				if (posIdx < 0) continue;
+
+				int vertexCount  = (int)gltfModel.accessors[posIdx].count;
+				int vertexOffset = (int)mBattleFireVertexDatas.size();
+
+				// Helper: get typed pointer into accessor element i, respecting byteStride
+				auto ptr = [&](int accIdx, size_t elemSize, int i) -> const uint8_t* {
+					const auto& acc  = gltfModel.accessors[accIdx];
+					const auto& view = gltfModel.bufferViews[acc.bufferView];
+					size_t stride    = view.byteStride ? view.byteStride : elemSize;
+					return gltfModel.buffers[view.buffer].data.data()
+						   + view.byteOffset + acc.byteOffset + i * stride;
+				};
+
+				// Read all vertices
+				for (int i = 0; i < vertexCount; ++i) {
+					BattleFireMeshVertexData v{};
+
+					const float* p = reinterpret_cast<const float*>(ptr(posIdx, sizeof(float) * 3, i));
+					v.mPosition = nodeMatrix * glm::vec4(p[0], p[1], p[2], 1.0f);
+
+					if (normIdx >= 0) {
+						const float* n = reinterpret_cast<const float*>(ptr(normIdx, sizeof(float) * 3, i));
+						glm::vec3 norm = glm::normalize(normalMatrix * glm::vec3(n[0], n[1], n[2]));
+						v.mNormal = glm::vec4(norm, 0.0f);
+					}
+
+					if (uvIdx >= 0) {
+						const float* uv = reinterpret_cast<const float*>(ptr(uvIdx, sizeof(float) * 2, i));
+						v.mTexcoord = glm::vec4(uv[0], uv[1], 0.0f, 0.0f);
+					}
+
+					if (tanIdx >= 0) {
+						const float* t = reinterpret_cast<const float*>(ptr(tanIdx, sizeof(float) * 4, i));
+						glm::vec3 tan = glm::normalize(glm::mat3(nodeMatrix) * glm::vec3(t[0], t[1], t[2]));
+						v.mTangent = glm::vec4(tan, t[3]); // t[3] = handedness (+1/-1)
+					}
+
+					mBattleFireVertexDatas.push_back(v);
+				}
+
+				// Read indices
+				std::vector<uint32_t> indices;
+				if (primitive.indices >= 0) {
+					const auto& idxAcc  = gltfModel.accessors[primitive.indices];
+					const auto& idxView = gltfModel.bufferViews[idxAcc.bufferView];
+					const uint8_t* data = gltfModel.buffers[idxView.buffer].data.data()
+						                  + idxView.byteOffset + idxAcc.byteOffset;
+					int count = (int)idxAcc.count;
+					indices.resize(count);
+
+					switch (idxAcc.componentType) {
+						case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: {
+							const uint32_t* src = reinterpret_cast<const uint32_t*>(data);
+							for (int i = 0; i < count; ++i) indices[i] = src[i] + vertexOffset;
+							break;
+						}
+						case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
+							const uint16_t* src = reinterpret_cast<const uint16_t*>(data);
+							for (int i = 0; i < count; ++i) indices[i] = src[i] + vertexOffset;
+							break;
+						}
+						case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
+							for (int i = 0; i < count; ++i) indices[i] = data[i] + vertexOffset;
+							break;
+						}
+					}
+				}
+
+				// Compute tangents (Lengyel) if glTF doesn't provide them
+				if (tanIdx < 0 && normIdx >= 0 && uvIdx >= 0 && !indices.empty()) {
+					std::vector<glm::vec3> tanAcc(vertexCount, glm::vec3(0.0f));
+					for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+						int i0 = (int)indices[i]     - vertexOffset;
+						int i1 = (int)indices[i + 1] - vertexOffset;
+						int i2 = (int)indices[i + 2] - vertexOffset;
+						auto& v0 = mBattleFireVertexDatas[vertexOffset + i0];
+						auto& v1 = mBattleFireVertexDatas[vertexOffset + i1];
+						auto& v2 = mBattleFireVertexDatas[vertexOffset + i2];
+						glm::vec3 e1  = glm::vec3(v1.mPosition) - glm::vec3(v0.mPosition);
+						glm::vec3 e2  = glm::vec3(v2.mPosition) - glm::vec3(v0.mPosition);
+						float du1 = v1.mTexcoord.x - v0.mTexcoord.x, dv1 = v1.mTexcoord.y - v0.mTexcoord.y;
+						float du2 = v2.mTexcoord.x - v0.mTexcoord.x, dv2 = v2.mTexcoord.y - v0.mTexcoord.y;
+						float denom = du1 * dv2 - du2 * dv1;
+						if (glm::abs(denom) < 1e-8f) continue;
+						glm::vec3 T = (1.0f / denom) * (dv2 * e1 - dv1 * e2);
+						tanAcc[i0] += T; tanAcc[i1] += T; tanAcc[i2] += T;
+					}
+					for (int i = 0; i < vertexCount; ++i) {
+						auto& v    = mBattleFireVertexDatas[vertexOffset + i];
+						glm::vec3 N = glm::vec3(v.mNormal);
+						glm::vec3 T = glm::normalize(tanAcc[i] - glm::dot(N, tanAcc[i]) * N);
+						v.mTangent  = glm::vec4(T, 0.0f);
+					}
+				}
+
+				// Create submesh
+				mIndexDatas.insert(mIndexDatas.end(), indices.begin(), indices.end());
+
+				std::string submeshName = mesh.name;
+				if (mesh.primitives.size() > 1)
+					submeshName += "_" + std::to_string(primIdx);
+
+				SubMesh* submesh         = new SubMesh;
+				submesh->mIndexCount     = (int)indices.size();
+				submesh->mSubMeshIndices = std::move(indices);
+				submesh->mSubMeshIndexBuffer = VKFW::vulkancore::DataBuffer::createIndexBuffer(
+					device, sizeof(uint32_t) * submesh->mIndexCount, submesh->mSubMeshIndices.data());
+				mSubMeshes.insert({ submeshName, submesh });
+			}
+		}
+
+		mVertexDataBuffer = VKFW::vulkancore::DataBuffer::createVertexBuffer(
+			device, mBattleFireVertexDatas.size() * sizeof(BattleFireMeshVertexData),
+			mBattleFireVertexDatas.data());
+
+		setVertexInputBindingDescriptions();
+		setAttributeDescription();
 	}
 
 	void Model::setVertexInputBindingDescriptions() {

@@ -57,6 +57,7 @@ namespace VKFW::renderer {
 		void loadModel(const std::string& path, const VKFW::Ref<VKFW::vulkancore::Device>& device);
 		void loadBattleFireModel(const std::string& path, const VKFW::Ref<VKFW::vulkancore::Device>& device);
 		void loadBattleFireComponent(const std::string& path, const VKFW::Ref<VKFW::vulkancore::Device>& device);
+		void loadGltfModel(const std::string& path, const VKFW::Ref<VKFW::vulkancore::Device>& device);
 
 		void setVertexInputBindingDescriptions();
 

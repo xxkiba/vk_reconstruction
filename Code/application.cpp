@@ -76,18 +76,27 @@ namespace VKFW {
         }
     }
     void Application::mainLoop() {
+        double fpsTimer = 0.0;
+        int frameCount = 0;
+
         while (!mWindow->shouldClose()) {
             mWindow->pollEvents();
             mWindow->processEvents();
 
             float dt = getFrameTime();
+            fpsTimer += dt;
+            frameCount++;
 
-            // update scene
-            if (mScene) {
-                mScene->update(dt, mCurrentFrame);
+            
+            if (fpsTimer >= 1.0) {
+                float fps = frameCount / fpsTimer;
+                std::string title = "VKFW | FPS: " + std::to_string((int)fps);
+                glfwSetWindowTitle(mWindow->getWindow(), title.c_str());
+                fpsTimer = 0.0;
+                frameCount = 0;
             }
 
-            // render
+            if (mScene) mScene->update(dt, mCurrentFrame);
             render();
         }
 
